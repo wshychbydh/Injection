@@ -1,9 +1,19 @@
-apply plugin: 'groovy'
-apply plugin: 'com.jfrog.bintray'
-apply plugin: 'maven-publish'
-apply plugin: 'com.github.dcendents.android-maven'
-group = 'com.github.wshychbydh'
+//apply plugin: 'java-library'
+//
+//dependencies {
+//    implementation fileTree(dir: 'libs', include: ['*.jar'])
+//}
+//
+//sourceCompatibility = "1.7"
+//targetCompatibility = "1.7"
 
+
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+group = 'com.github.wshychbydh'
+//group = "com.heshidai.app.inject"//project属性
+//version = "1.0"//project属性
 repositories {
     jcenter()
     google()
@@ -15,7 +25,7 @@ dependencies {
     compile gradleApi()
     //groovy sdk
     compile localGroovy()
-    // implementation 'com.android.tools.build:gradle:3.0.1'
+  //  implementation 'com.android.tools.build:gradle:3.1.0'
     implementation 'org.javassist:javassist:3.20.0-GA'
 }
 
