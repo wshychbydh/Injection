@@ -10,9 +10,9 @@ import com.android.build.api.transform.TransformInput;
 import com.android.build.api.transform.TransformOutputProvider;
 import com.android.build.gradle.internal.pipeline.TransformManager;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
-import org.gradle.internal.impldep.org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class ClazzTransform extends Transform {
     //指明当前Transform是否支持增量编译
     @Override
     public boolean isIncremental() {
-        return false;
+        return true;
     }
 
 
@@ -58,20 +58,15 @@ public class ClazzTransform extends Transform {
                           Collection<TransformInput> referencedInputs,
                           TransformOutputProvider outputProvider, boolean isIncremental)
             throws IOException, InterruptedException {
-
-        System.out.println("begin transform~~~~");
         for (TransformInput it : inputs) {
             for (DirectoryInput directoryInput : it.getDirectoryInputs()) {
-                //TODO 这里可以对input的文件做处理，比如代码注入！
                 InjectUtils.inject(directoryInput.getFile().getAbsolutePath(), project);
                 File dest = outputProvider.getContentLocation(directoryInput.getName(),
                         directoryInput.getContentTypes(), directoryInput.getScopes(), Format.DIRECTORY);
 
                 FileUtils.copyDirectory(directoryInput.getFile(), dest);
             }
-
             for (JarInput jarInput : it.getJarInputs()) {
-                //TODO 这里可以对input的文件做处理，比如代码注入！
                 String jarName = jarInput.getName();
                 String md5Name = DigestUtils.md5Hex(jarInput.getFile().getAbsolutePath());
                 if (jarName.endsWith(".jar")) {

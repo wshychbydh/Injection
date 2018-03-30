@@ -11,9 +11,9 @@
 apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
-group = 'com.github.wshychbydh'
-//group = "com.heshidai.app.inject"//project属性
-//version = "1.1"//project属性
+//group = 'com.github.wshychbydh'
+group = "com.heshidai.app.inject"//project属性
+version = "1.2"//project属性
 repositories {
     jcenter()
     google()
@@ -27,7 +27,8 @@ dependencies {
     compile localGroovy()
     implementation 'com.android.tools.build:gradle:3.1.0'
     implementation 'org.javassist:javassist:3.20.0-GA'
-    implementation 'com.google.auto.value:auto-value:1.5.2'
+    //implementation 'com.google.auto.value:auto-value:1.5.2'
+    implementation 'com.bugtags.library:bugtags-lib:1.1.0'
 }
 
 uploadArchives {

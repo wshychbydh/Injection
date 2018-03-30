@@ -9,13 +9,9 @@ public class InjectPlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
         System.out.println("========================");
-        System.out.println("hello gradle plugin! updated");
         AppExtension android = project.getExtensions().findByType(AppExtension.class);
         if (android != null) {
-            System.out.println("AppExtension is not null~~~~");
             android.registerTransform(new ClazzTransform(project));
-        } else {
-            System.out.println("AppExtension is null~~~~");
         }
         System.out.println("========================");
     }
