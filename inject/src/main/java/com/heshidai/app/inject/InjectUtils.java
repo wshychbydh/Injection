@@ -13,7 +13,6 @@ import javassist.ClassPool;
  */
 
 public class InjectUtils {
-    //初始化类池
     private final static ClassPool pool = ClassPool.getDefault();
 
     private final static HashMap injectMap = new HashMap<String, String>();
@@ -31,6 +30,7 @@ public class InjectUtils {
     }
 
     public static void inject(String path, Project project) {
+        System.out.println("inject~~~" + path);
         File dir = new File(path);
         if (dir.isDirectory()) {
             System.out.println("filePath-->" + dir.getAbsolutePath());
