@@ -34,9 +34,11 @@
               Monitor.onCheckChanged(group, checkedId);
           }
      }
-3、如果需要标记某些方法不注入，需新建一个**InjectIgnore**注解类，如下：
+3、如果有不需要注入的方法，需新建一个**InjectIgnore**注解类，如下：
 
     public @interface InjectIgnore {}
+    
+   然后在不需要标记的方法上面添加*@InjectIgnore*
     
 4、如果不想创建新的目录，也可以将Injection类存放于任何目录下，然后在app的build文件中添加代码：
     
