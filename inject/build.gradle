@@ -1,19 +1,7 @@
-//apply plugin: 'java-library'
-//
-//dependencies {
-//    implementation fileTree(dir: 'libs', include: ['*.jar'])
-//}
-//
-//sourceCompatibility = "1.7"
-//targetCompatibility = "1.7"
-
-
-apply plugin: 'java'
-apply plugin: 'maven'
+apply plugin: 'groovy'
 apply plugin: 'maven-publish'
-//group = 'com.github.wshychbydh'
-group = "com.heshidai.app.inject"//project属性
-version = "1.2"//project属性
+group = 'com.github.wshychbydh'
+
 repositories {
     jcenter()
     google()
@@ -27,20 +15,4 @@ dependencies {
     compile localGroovy()
     implementation 'com.android.tools.build:gradle:3.1.0'
     implementation 'org.javassist:javassist:3.20.0-GA'
-    //implementation 'com.google.auto.value:auto-value:1.5.2'
-    implementation 'com.bugtags.library:bugtags-lib:1.1.0'
-}
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            //提交到远程服务器：
-            //repository(url: "http://www.xxx.com/repos") {
-//            repository(url: "http://120.78.230.212:8081/") {
-//                authentication(userName: "root", password: "Dhsgg017")
-//            }
-            //本地的Maven地址设置为D:/plugin
-            repository(url: uri('D:/plugin'))
-        }
-    }
 }
