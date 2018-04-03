@@ -55,6 +55,8 @@ public class InjectUtils {
                                 //TODO Inject $0(class) Failed
                                 String insetBeforeStr = injectPath + "." + injectMap.get(cm.name)
                                 println("inject--> " + clazzName + "." + cm.name + " --> " + insetBeforeStr)
+
+                                //FIXME Inject class's path for get more method info
                                 cm.insertBefore(insetBeforeStr)
                                 ctClass.writeFile(path)
                             }
