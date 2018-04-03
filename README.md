@@ -4,6 +4,7 @@
 #### 注入条件：
 
 1、项目源码，且不包含jar/aar等依赖包
+
 2、非接口、非抽象类且拥有方法onClick，onLongClick，onCheckedChanged方法。
 
 #### 使用规则：
@@ -66,3 +67,5 @@
     apply plugin: com.plugin.inject.InjectPlugin
     
 ##### Demo地址：https://github.com/wshychbydh/ActionDemo
+
+[![](https://jitpack.io/v/wshychbydh/Injection.svg)](https://jitpack.io/#wshychbydh/Injection)
