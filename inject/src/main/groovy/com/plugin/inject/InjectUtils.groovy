@@ -14,7 +14,7 @@ public class InjectUtils {
 
     private static final String INJECT_CLICK = "android.view.View\$OnClickListener"
     private static final String INJECT_LONG_CLICK = "android.view.View\$OnLongClickListener"
-    private static final String INJECT_TOUCH = "android.view.View\$OnTouchListener"
+    // private static final String INJECT_TOUCH = "android.view.View\$OnTouchListener"
     private static final String INJECT_PATH = "com.plugin.inject.Injection"
     private static final String INJECT_GROUP = "android.widget.RadioGroup\$OnCheckedChangeListener"
     private static final String INJECT_BUTTON = "android.widget.CompoundButton\$OnCheckedChangeListener"
@@ -51,7 +51,7 @@ public class InjectUtils {
             config(project)
             //遍历文件夹
             dir.eachFileRecurse { File file ->
-                if (isFilterClazz(file.absolutePath)) {
+                if (isInjectFile(file.absolutePath)) {
                     doInject(rootPath, file.absolutePath)
                 }
             }
@@ -61,7 +61,7 @@ public class InjectUtils {
     private static void doInject(String rootPath, String filePath) {
         def clazzName = getClassNameFromPath(filePath)
         CtClass ctClass = pool.getCtClass(clazzName)
-        if (isInjectClazz(ctClass)) {
+        if (isInjectClass(ctClass)) {
             CtMethod[] methods = ctClass.getDeclaredMethods()
             for (CtMethod cm : methods) {
                 if (ignoreClazz != null && cm.hasAnnotation(ignoreClazz)) continue
@@ -106,22 +106,26 @@ public class InjectUtils {
         return injectPath.replace(".", "/")
     }
 
-    private static boolean isInjectMethod(CtMethod method) {
-        def types = method.parameterTypes
+    private static boolean isInjectMethod(CtMethod cm) {
+        def types = cm.parameterTypes
         if (types == null || types.length == 0) return false
 
         def isInjectMethod = false
-        if (injectClick) {
-            isInjectMethod |= types.length == 1 && (types[0].name == "android.view.View" || types[0].name.startsWith("android.widget."))
+        if ((cm.name == "onClick" && injectClick) || (cm.name == "onLongClick" && injectLongClick)) {
+            isInjectMethod |= types.length == 1 &&
+                    (types[0].name == "android.view.View" || types[0].name.startsWith("android.widget."))
         }
-        if (injectRadioGroup) {
-            isInjectMethod |= types.length == 2 && types[0].name == "android.widget.RadioGroup" && types[1].name == "int"
+        if (cm.name == "onCheckedChanged" && injectRadioGroup) {
+            isInjectMethod |= types.length == 2 &&
+                    types[0].name == "android.widget.RadioGroup" && types[1].name == "int"
         }
-        if (injectCompoundButton) {
-            isInjectMethod |= types.length == 2 && types[0].name == "android.widget.CompoundButton" && types[1].name == "boolean"
+        if (cm.name == "onCheckedChanged" && injectCompoundButton) {
+            isInjectMethod |= types.length == 2 &&
+                    types[0].name == "android.widget.CompoundButton" && types[1].name == "boolean"
         }
-        if (injectTouch) {
-            isInjectMethod |= types.length == 2 && types[0].name == "android.view.View" && types[1].name == "android.view.MotionEvent"
+        if (cm.name == "onTouch" && injectTouch) {
+            isInjectMethod |= types.length == 2 &&
+                    types[0].name == "android.view.View" && types[1].name == "android.view.MotionEvent"
         }
         return isInjectMethod
     }
@@ -148,7 +152,7 @@ public class InjectUtils {
         if (project.hasProperty("INJECT_TOUCH")) {
             if (project.INJECT_TOUCH) {
                 injectTouch = true
-                injectList.add(INJECT_TOUCH)
+                //injectList.add(INJECT_TOUCH)
             }
         }
         if (project.hasProperty("INJECT_LONG_CLICK")) {
@@ -180,18 +184,24 @@ public class InjectUtils {
         println("INJECT_IGNORE---------->" + ignoreClazz.name)
     }
 
-    private static boolean isInjectClazz(CtClass ctClass) {
+    private static boolean isInjectClass(CtClass ctClass) {
         boolean isAbstract = Modifier.isAbstract(ctClass.getModifiers())
         boolean isInjectClazz = false
 
         ctClass.getInterfaces().each {
             isInjectClazz |= injectList.contains(it.name)
         }
-        return !isAbstract && !ctClass.isInterface() && isInjectClazz
+        return !isAbstract && !ctClass.isInterface() && isInjectClazz || injectTouch
     }
 
-    private static boolean isFilterClazz(String filePath) {
-        return filePath.endsWith(".class") && !filePath.contains('R$') &&
+    private static boolean isInjectFile(String filePath) {
+        def isInjectClass = filePath.endsWith(".class") && !filePath.contains('R$') &&
                 !filePath.contains('R.class') && !filePath.contains("BuildConfig.class")
+        if (isInjectClass) {
+            if (filePath.endsWith("Injection.class")) {
+                isInjectClass &= getClassNameFromPath(filePath) != injectPath
+            }
+        }
+        return isInjectClass
     }
 }
