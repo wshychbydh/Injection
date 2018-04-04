@@ -19,14 +19,14 @@ public class InjectUtils {
     private static final String INJECT_GROUP = "android.widget.RadioGroup\$OnCheckedChangeListener"
     private static final String INJECT_BUTTON = "android.widget.CompoundButton\$OnCheckedChangeListener"
 
-    private final static injectList = new ArrayList<String>()
+    private static final injectList = new ArrayList<String>()
     private static boolean injectClick = true
     private static boolean injectTouch = false
     private static boolean injectLongClick = false
     private static boolean injectRadioGroup = false
     private static boolean injectCompoundButton = false
+    private static boolean injectLog = false
     private static String injectPath = INJECT_PATH
-    private static Class ignoreClazz = null
 
     static {
         injectMap.put("onClick", """onViewClick(\$1);""")
@@ -64,15 +64,16 @@ public class InjectUtils {
         if (isInjectClass(ctClass)) {
             CtMethod[] methods = ctClass.getDeclaredMethods()
             for (CtMethod cm : methods) {
-                if (ignoreClazz != null && cm.hasAnnotation(ignoreClazz)) continue
+                if (cm.hasAnnotation(Ignore.class)) continue
                 if (injectMap.containsKey(cm.name) && isInjectMethod(cm)) {
                     if (ctClass.isFrozen()) {
                         ctClass.defrost()//解冻
                     }
                     //CtClass相关用法参考http://blog.csdn.net/u011425751/article/details/51917895
-                    //FIXME Inject $0(class) Failed
                     String insetBeforeStr = injectPath + "." + injectMap.get(cm.name)
-                    println("inject--> " + clazzName + "." + cm.name + " --> " + cm.parameterTypes[0].name)
+                    if (injectLog) {
+                        println("inject ----> " + clazzName + "." + cm.name)
+                    }
                     cm.insertBefore(insetBeforeStr)
                     ctClass.writeFile(rootPath)
                 }
@@ -102,7 +103,6 @@ public class InjectUtils {
         if (project.hasProperty("INJECT_PATH")) {
             injectPath = project.INJECT_PATH
         }
-        println("INJECT_PATH------------>" + injectPath)
         return injectPath.replace(".", "/")
     }
 
@@ -141,7 +141,6 @@ public class InjectUtils {
         injectLongClick = false
         injectRadioGroup = false
         injectCompoundButton = false
-        ignoreClazz = null
 
         if (project.hasProperty("INJECT_CLICK")) {
             injectClick = project.INJECT_CLICK
@@ -173,15 +172,12 @@ public class InjectUtils {
                 injectList.add(INJECT_BUTTON)
             }
         }
-        if (project.hasProperty("INJECT_IGNORE")) {
-            try {
-                ignoreClazz = Class.forName(project.INJECT_IGNORE)
-                //pool.makeClass(ignoreClazz) // FIXME Failed
-            } catch (Exception ignored) {
-                ignoreClazz = InjectIgnore.class
-            }
+        if (project.hasProperty("INJECT_LOG")) {
+            injectLog = project.INJECT_LOG
         }
-        println("INJECT_IGNORE---------->" + ignoreClazz.name)
+        if (injectLog) {
+            println("INJECT_PATH------------>" + injectPath)
+        }
     }
 
     private static boolean isInjectClass(CtClass ctClass) {
