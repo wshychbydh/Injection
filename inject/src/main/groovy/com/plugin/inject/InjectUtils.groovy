@@ -8,64 +8,77 @@ import org.gradle.api.Project
 import java.lang.reflect.Modifier
 
 public class InjectUtils {
-//初始化类池
+    //初始化类池
     private final static ClassPool pool = ClassPool.getDefault()
     private final static injectMap = new HashMap<String, String>()
+
+    private static final String INJECT_CLICK = "android.view.View\$OnClickListener"
+    private static final String INJECT_LONG_CLICK = "android.view.View\$OnLongClickListener"
+    private static final String INJECT_TOUCH = "android.view.View\$OnTouchListener"
+    private static final String INJECT_PATH = "com.plugin.inject.Injection"
+    private static final String INJECT_GROUP = "android.widget.RadioGroup\$OnCheckedChangeListener"
+    private static final String INJECT_BUTTON = "android.widget.CompoundButton\$OnCheckedChangeListener"
+
     private final static injectList = new ArrayList<String>()
-    private static String injectPath = "com.plugin.inject.Injection"
+    private static boolean injectClick = true
+    private static boolean injectTouch = false
+    private static boolean injectLongClick = false
+    private static boolean injectRadioGroup = false
+    private static boolean injectCompoundButton = false
+    private static String injectPath = INJECT_PATH
     private static Class ignoreClazz = null
 
     static {
         injectMap.put("onClick", """onViewClick(\$1);""")
         injectMap.put("onLongClick", """onViewLongClick(\$1);""")
         injectMap.put("onCheckedChanged", """onCheckChanged(\$\$);""")
-
-        injectList.add("android.view.View\$OnClickListener")
-        injectList.add("android.view.View\$OnLongClickListener")
-        injectList.add("android.widget.RadioGroup\$OnCheckedChangeListener")
+        injectMap.put("onTouch", """onTouch(\$\$);""")
     }
 
-    public static void inject(String path, Project project) {
-        if (!isInjectFileExist(path, project)) return
-        //将当前路径加入类池,不然找不到这个类
-        pool.appendClassPath(path)
-        //project.android.bootClasspath 加入android.jar，不然找不到android相关的所有类
+    public static void inject(String rootPath, Project project) {
+        if (!isInjectFileExist(rootPath, project)) return
+        //将根路径加入类池
+        pool.appendClassPath(rootPath)
+        //加入android相关类
         pool.appendClassPath(project.android.bootClasspath[0].toString())
-        //引入android.view.View包，因为onClick方法参数有View
-        pool.importPackage("android.view.View")
-        //引入android.view.View包，因为onCheckedChanged方法参数有RadioGroup
-        pool.importPackage("android.widget.RadioGroup")
+        //   此处我是直接传递的方法参数，该参数在源码中已经引入了，此处无需再引入
+        //   pool.importPackage("android.view.View")
+        //   pool.importPackage("android.widget.RadioGroup")
+        //   pool.importPackage("android.widget.CompoundButton")
 
-        File dir = new File(path)
+        File dir = new File(rootPath)
         if (dir.isDirectory()) {
+            config(project)
             //遍历文件夹
             dir.eachFileRecurse { File file ->
                 if (isFilterClazz(file.absolutePath)) {
-                    def clazzName = getClassNameFromPath(file.absolutePath)
-                    CtClass ctClass = pool.getCtClass(clazzName)
-                    if (isInjectClazz(ctClass)) {
-                        CtMethod[] methods = ctClass.getDeclaredMethods()
-                        for (CtMethod cm : methods) {
-                            if (ignoreClazz != null && cm.hasAnnotation(ignoreClazz)) continue
-                            if (injectMap.containsKey(cm.name)) {
-                                if (ctClass.isFrozen()) {
-                                    ctClass.defrost()//解冻
-                                }
-                                //http://blog.csdn.net/u011425751/article/details/51917895
-                                //TODO Inject $0(class) Failed
-                                String insetBeforeStr = injectPath + "." + injectMap.get(cm.name)
-                                println("inject--> " + clazzName + "." + cm.name + " --> " + insetBeforeStr)
-
-                                //FIXME Inject class's path for get more method info
-                                cm.insertBefore(insetBeforeStr)
-                                ctClass.writeFile(path)
-                            }
-                        }
-                    }
-                    ctClass.detach()//release
+                    doInject(rootPath, file.absolutePath)
                 }
             }
         }
+    }
+
+    private static void doInject(String rootPath, String filePath) {
+        def clazzName = getClassNameFromPath(filePath)
+        CtClass ctClass = pool.getCtClass(clazzName)
+        if (isInjectClazz(ctClass)) {
+            CtMethod[] methods = ctClass.getDeclaredMethods()
+            for (CtMethod cm : methods) {
+                if (ignoreClazz != null && cm.hasAnnotation(ignoreClazz)) continue
+                if (injectMap.containsKey(cm.name) && isInjectMethod(cm)) {
+                    if (ctClass.isFrozen()) {
+                        ctClass.defrost()//解冻
+                    }
+                    //CtClass相关用法参考http://blog.csdn.net/u011425751/article/details/51917895
+                    //FIXME Inject $0(class) Failed
+                    String insetBeforeStr = injectPath + "." + injectMap.get(cm.name)
+                    println("inject--> " + clazzName + "." + cm.name + " --> " + cm.parameterTypes[0].name)
+                    cm.insertBefore(insetBeforeStr)
+                    ctClass.writeFile(rootPath)
+                }
+            }
+        }
+        ctClass.detach()//release
     }
 
     private static String getClassNameFromPath(String path) {
@@ -85,27 +98,92 @@ public class InjectUtils {
     }
 
     private static String obtainInjectPath(Project project) {
+        injectPath = INJECT_PATH
+        if (project.hasProperty("INJECT_PATH")) {
+            injectPath = project.INJECT_PATH
+        }
+        println("INJECT_PATH------------>" + injectPath)
+        return injectPath.replace(".", "/")
+    }
+
+    private static boolean isInjectMethod(CtMethod method) {
+        def types = method.parameterTypes
+        if (types == null || types.length == 0) return false
+
+        def isInjectMethod = false
+        if (injectClick) {
+            isInjectMethod |= types.length == 1 && (types[0].name == "android.view.View" || types[0].name.startsWith("android.widget."))
+        }
+        if (injectRadioGroup) {
+            isInjectMethod |= types.length == 2 && types[0].name == "android.widget.RadioGroup" && types[1].name == "int"
+        }
+        if (injectCompoundButton) {
+            isInjectMethod |= types.length == 2 && types[0].name == "android.widget.CompoundButton" && types[1].name == "boolean"
+        }
+        if (injectTouch) {
+            isInjectMethod |= types.length == 2 && types[0].name == "android.view.View" && types[1].name == "android.view.MotionEvent"
+        }
+        return isInjectMethod
+    }
+
+    /**
+     * Rest all and load config info from app's build.xml
+     * @param project
+     */
+    private static void config(Project project) {
+        injectList.clear()
+        injectClick = true
+        injectTouch = false
+        injectLongClick = false
+        injectRadioGroup = false
+        injectCompoundButton = false
+        ignoreClazz = null
+
+        if (project.hasProperty("INJECT_CLICK")) {
+            injectClick = project.INJECT_CLICK
+        }
+        if (injectClick) {
+            injectList.add(INJECT_CLICK)
+        }
+        if (project.hasProperty("INJECT_TOUCH")) {
+            if (project.INJECT_TOUCH) {
+                injectTouch = true
+                injectList.add(INJECT_TOUCH)
+            }
+        }
+        if (project.hasProperty("INJECT_LONG_CLICK")) {
+            if (project.INJECT_LONG_CLICK) {
+                injectLongClick = true
+                injectList.add(INJECT_LONG_CLICK)
+            }
+        }
+        if (project.hasProperty("INJECT_RADIOGROUP")) {
+            if (project.INJECT_RADIOGROUP) {
+                injectRadioGroup = true
+                injectList.add(INJECT_GROUP)
+            }
+        }
+        if (project.hasProperty("INJECT_COMPOUNDBUTTON")) {
+            if (project.INJECT_COMPOUNDBUTTON) {
+                injectCompoundButton = true
+                injectList.add(INJECT_BUTTON)
+            }
+        }
         if (project.hasProperty("INJECT_IGNORE")) {
             try {
                 ignoreClazz = Class.forName(project.INJECT_IGNORE)
-                //pool.makeClass(ignoreClazz) // TODO Failed
+                //pool.makeClass(ignoreClazz) // FIXME Failed
             } catch (Exception ignored) {
                 ignoreClazz = InjectIgnore.class
             }
         }
-
-        if (project.hasProperty("INJECT_PATH")) {
-            injectPath = project.INJECT_PATH
-        }
         println("INJECT_IGNORE---------->" + ignoreClazz.name)
-        println("INJECT_PATH------------>" + injectPath)
-
-        return injectPath.replace(".", "/")
     }
 
     private static boolean isInjectClazz(CtClass ctClass) {
         boolean isAbstract = Modifier.isAbstract(ctClass.getModifiers())
         boolean isInjectClazz = false
+
         ctClass.getInterfaces().each {
             isInjectClazz |= injectList.contains(it.name)
         }

@@ -80,7 +80,7 @@ public class ClazzTransform extends Transform {
 
             input.jarInputs.each { JarInput jarInput ->
 
-                //TODO 这里可以对input的文件做处理，比如代码注入！
+                //FIXME 对jar包进行代码注入，可能需要先解包？
                 //  InjectUtils.inject(jarInput.file.absolutePath, project)
                 // 重命名输出文件（同目录copyFile会冲突）
                 def jarName = jarInput.name
