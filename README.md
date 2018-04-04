@@ -38,9 +38,10 @@
               Monitor.onCheckChanged(buttonView, isChecked);
           }
      }
-   _注: 
+   注: 
+   
      * 类中的方法按需加载，如果不需要注入则可不加。
-     * Monitor在数据采集依赖包com.github.wshychbydh:ActionMonitor:xx中。_ 
+     * Monitor在数据采集依赖包com.github.wshychbydh:ActionMonitor:xx中。 
      
 3、如果有不需要注入的方法，需新建一个**InjectIgnore**注解类，如下：
 
@@ -54,10 +55,11 @@
         INJECT_PATH = "com.plugin.inject.Injection" //Injection的完整地址
         INJECT_IGNORE = "com.plugin.inject.InjectIgnore"  //InjectIgnore的完整地址
     }
-   _注：
+   注：
+   
     * 如果按照‘规则1’设置，以上参数可不设置。
     * 该方式InjectIgnore可能会失效，如果失效，请参考“规则1”。
-    * 检查InjectIgnore是否失效的方式：在编译时查看‘Inject_IGNORE’的打印地址是否与设置一致，不一致则说明失效。_  
+    * 检查InjectIgnore是否失效的方式：在编译时查看‘Inject_IGNORE’的打印地址是否与设置一致，不一致则说明失效。  
         
  5、在app的build文件中配置需要过滤的方法：
  
@@ -84,6 +86,7 @@
             classpath 'com.github.wshychbydh:Injection:xxx'
         }
     }
+    ```
     apply plugin: com.plugin.inject.InjectPlugin
     
 ##### Demo地址：https://github.com/wshychbydh/ActionDemo
