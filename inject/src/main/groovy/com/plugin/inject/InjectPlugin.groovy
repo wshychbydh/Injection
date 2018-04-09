@@ -5,7 +5,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 
 /**
- * Created by hp on 2016/4/8.
+ * Created by hp on 2017/3/15.
  */
 public class InjectPlugin implements Plugin<Project> {
     @Override

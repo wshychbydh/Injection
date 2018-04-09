@@ -8,9 +8,10 @@ import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * Created by cool on 2018/4/4.
+ * Created by cool on 2018/4/8.
  */
 @Retention(RUNTIME)
 @Target({TYPE, METHOD})
 public @interface Ignore {
+    boolean value() default true;
 }
