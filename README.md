@@ -38,19 +38,19 @@
           
           //默认需要添加该方法，否则可能会报错
           public static void onClick(View v) {
-              Monitor.onViewClick(v);
+              Monitor.onClick(v);
           }
           
           public static void onTouch(View v, MotionEvent event) {
               Monitor.onTouch(v, event);
           }
           
-          public static void onTouchEvent(Object obj, MotionEvent event) {
-              if (obj instanceof View) {
-                  Monitor.onTouchEvent((View)obj, event);
-              } else if (obj instanceof Activity) {
-                  Monitor.onTouchEvent((Activity)obj, event);
-              }
+          public static void onTouchEvent(Activity activity, MotionEvent event) {
+              Monitor.onTouchEvent(activity, event);
+          }
+          
+          public static void onTouchEvent(View view, MotionEvent event) {
+              Monitor.onTouchEvent(view, event);
           }
       
           public static void onLongClick(View v) {
@@ -83,12 +83,13 @@
  5、在app的build文件中配置需要注入的方法：（按需添加）
  
     ext {
-        INJECT_CLICK = true          //注入所有符合条件的onClick方法，默认为true 
-        INJECT_TOUCH = true          //onTouch方法，默认为false
-        INJECT_LONG_CLICK = true     //onLongClick方法，默认为false
-        INJECT_RADIOGROUP = true     //RadioGroup的onCheckedChanged方法，默认为false
-        INJECT_COMPOUNDBUTTON = true //CompoundButton的onCheckedChanged方法，默认为false
-        INJECT_LOG = true            //是否打印日志，默认false
+        INJECT_CLICK = true           //注入所有符合条件的onClick方法，默认为true 
+        INJECT_TOUCH = false          //onTouch方法，默认为false
+        INJECT_TOUCH_EVENT = false    //onTouchEvent方法，默认为false
+        INJECT_LONG_CLICK = false     //onLongClick方法，默认为false
+        INJECT_RADIOGROUP = false     //RadioGroup的onCheckedChanged方法，默认为false
+        INJECT_COMPOUNDBUTTON = false //CompoundButton的onCheckedChanged方法，默认为false
+        INJECT_LOG = false            //是否打印日志，默认false
     }
 
 #### 二、添加插件依赖
