@@ -2,6 +2,7 @@ package com.plugin.inject
 
 import com.android.build.api.transform.*
 import com.android.build.gradle.internal.pipeline.TransformManager
+import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
 
@@ -29,8 +30,9 @@ class ClazzTransform extends Transform {
 
     @Override
     Set<QualifiedContent.Scope> getScopes() {
-        return TransformManager.PROJECT_ONLY
-        //  return TransformManager.SCOPE_FULL_PROJECT
+        //build.version >= 3.0.1
+        // return TransformManager.PROJECT_ONLY
+        return TransformManager.SCOPE_FULL_PROJECT
     }
 
     @Override
@@ -53,16 +55,17 @@ class ClazzTransform extends Transform {
                 FileUtils.copyDirectory(directoryInput.file, dest)
             }
 
-//            input.jarInputs.each { JarInput jarInput ->
-//                //  new InjectHelper().inject(jarInput.file.absolutePath, project)
-//                def jarName = jarInput.name
-//                def md5Name = DigestUtils.md5Hex(jarInput.file.getAbsolutePath())
-//                if (jarName.endsWith(".jar")) {
-//                    jarName = jarName.substring(0, jarName.length() - 4)
-//                }
-//                def dest = outputProvider.getContentLocation(jarName + md5Name, jarInput.contentTypes, jarInput.scopes, Format.JAR)
-//                FileUtils.copyFile(jarInput.file, dest)
-//            }
+            input.jarInputs.each { JarInput jarInput ->
+                //FIXME Inject code in jar, may need decode jar first
+                //  new InjectHelper().inject(jarInput.file.absolutePath, project)
+                def jarName = jarInput.name
+                def md5Name = DigestUtils.md5Hex(jarInput.file.getAbsolutePath())
+                if (jarName.endsWith(".jar")) {
+                    jarName = jarName.substring(0, jarName.length() - 4)
+                }
+                def dest = outputProvider.getContentLocation(jarName + md5Name, jarInput.contentTypes, jarInput.scopes, Format.JAR)
+                FileUtils.copyFile(jarInput.file, dest)
+            }
         }
     }
 }
