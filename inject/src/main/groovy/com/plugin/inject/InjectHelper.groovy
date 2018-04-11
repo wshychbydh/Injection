@@ -31,11 +31,13 @@ class InjectHelper {
     private static final String INJECT_GROUP = GROUP + "\$OnCheckedChangeListener"
     private static final String INJECT_BUTTON = BUTTON + "\$OnCheckedChangeListener"
 
-    private static final String INJECT_PATH = "com.plugin.inject.Injection"
+    private static final String INJECTION_PATH = "com.plugin.inject.Injection"
 
     private final ClassPool pool = ClassPool.getDefault()
     private final injectMap = new HashMap<String, String>()
-    private String injectPath = INJECT_PATH
+    private String injectionPath = INJECTION_PATH
+    private String injectPath = null
+    private String ignorePath = null
 
     private final injectList = new ArrayList<CtClass>()
     private boolean injectClick = true
@@ -55,6 +57,7 @@ class InjectHelper {
     }
 
     void inject(String rootPath, Project project) {
+
         if (!isInjectFileExist(rootPath, project)) return
         //add path to pool
         pool.appendClassPath(rootPath)
@@ -62,10 +65,11 @@ class InjectHelper {
         pool.appendClassPath(project.android.bootClasspath[0].toString())
 
         File dir = new File(rootPath)
+
         if (dir.isDirectory()) {
             config(project)
             dir.eachFileRecurse { File file ->
-                if (isInjectFile(file.absolutePath, injectPath)) {
+                if (isInjectFile(file.absolutePath, injectionPath)) {
                     doInject(rootPath, file.absolutePath)
                 }
             }
@@ -75,14 +79,14 @@ class InjectHelper {
     private void doInject(String rootPath, String filePath) {
         def clazzName = getClassNameFromPath(filePath)
         CtClass ctClass = pool.getCtClass(clazzName)
+
         if (isInjectClass(ctClass)) {
             CtMethod[] methods = ctClass.getDeclaredMethods()
             for (CtMethod cm : methods) {
+
                 if (Modifier.isAbstract(cm.getModifiers())) continue
-                if (cm.hasAnnotation(Ignore.class)) {
-                    Ignore ignore = cm.getAnnotation(Ignore.class)
-                    if (ignore.value()) continue
-                }
+
+                if (hasIgnoreAnnotation(cm)) continue
 
                 if ((injectMap.containsKey(cm.name) && isInjectMethod(cm))) {
                     if (ctClass.isFrozen()) {
@@ -91,7 +95,7 @@ class InjectHelper {
                     if (injectLog) {
                         println("inject ----> " + clazzName + "." + cm.name)
                     }
-                    cm.insertBefore(injectPath + "." + injectMap.get(cm.name))
+                    cm.insertBefore(injectionPath + "." + injectMap.get(cm.name))
                     ctClass.writeFile(rootPath)
                 }
             }
@@ -100,44 +104,62 @@ class InjectHelper {
     }
 
     private boolean isInjectFileExist(String path, Project project) {
-        String injectPath = obtainInjectPath(project)
+        String injectionPath = obtainInjectionPath(project)
         File file = new File(path)
+
         if (file.exists() && file.isDirectory()) {
-            file = new File(file.absolutePath, injectPath + ".class")
+            file = new File(file.absolutePath, injectionPath + ".class")
             return file.exists()
         }
+
         return false
     }
 
-    private String obtainInjectPath(Project project) {
-        injectPath = INJECT_PATH
+    private String obtainInjectionPath(Project project) {
+
+        if (project.hasProperty("IGNORE_PATH")) {
+            ignorePath = project.IGNORE_PATH
+        }
+
         if (project.hasProperty("INJECT_PATH")) {
             injectPath = project.INJECT_PATH
         }
-        return injectPath.replace(".", "/")
+
+        if (project.hasProperty("INJECTION_PATH")) {
+            injectionPath = project.INJECTION_PATH
+        }
+
+        return injectionPath.replace(".", "/")
     }
 
     private boolean isInjectMethod(CtMethod cm) {
         def types = cm.parameterTypes
+
         if (types == null || types.length == 0) return false
 
         def isInjectMethod = false
+
         if ((injectClick && cm.name == CLICK) || (injectLongClick && cm.name == LONG_CLICK)) {
             isInjectMethod |= types.length == 1 &&
                     (types[0].name == VIEW || types[0].name.startsWith("android.widget."))
         }
+
         if (injectRadioGroup && cm.name == CHECK_CHANGE) {
             isInjectMethod |= types.length == 2 && types[0].name == GROUP && types[1].name == "int"
         }
+
         if (injectCompoundButton && cm.name == CHECK_CHANGE) {
             isInjectMethod |= types.length == 2 && types[0].name == BUTTON && types[1].name == "boolean"
         }
+
         if (injectTouch && cm.name == TOUCH) {
             isInjectMethod |= types.length == 2 && types[0].name == VIEW && types[1].name == EVENT
         }
+
         if (injectTouchEvent && cm.name == TOUCH_EVENT) {
             isInjectMethod |= types.length == 1 && types[0].name == EVENT
         }
+
         return isInjectMethod
     }
 
@@ -146,12 +168,15 @@ class InjectHelper {
      * @param project
      */
     private void config(Project project) {
+
         if (project.hasProperty("INJECT_CLICK")) {
             injectClick = project.INJECT_CLICK
         }
+
         if (injectClick) {
             injectList.add(pool.get(INJECT_CLICK))
         }
+
         if (project.hasProperty("INJECT_TOUCH_EVENT")) {
             if (project.INJECT_TOUCH_EVENT) {
                 injectTouchEvent = true
@@ -159,35 +184,43 @@ class InjectHelper {
                 injectList.add(pool.get(ACTIVITY))
             }
         }
+
         if (project.hasProperty("INJECT_TOUCH")) {
             if (project.INJECT_TOUCH) {
                 injectTouch = true
                 injectList.add(pool.get(INJECT_TOUCH))
             }
         }
+
         if (project.hasProperty("INJECT_LONG_CLICK")) {
             if (project.INJECT_LONG_CLICK) {
                 injectLongClick = true
                 injectList.add(pool.get(INJECT_LONG_CLICK))
             }
         }
+
         if (project.hasProperty("INJECT_RADIOGROUP")) {
             if (project.INJECT_RADIOGROUP) {
                 injectRadioGroup = true
                 injectList.add(pool.get(INJECT_GROUP))
             }
         }
+
         if (project.hasProperty("INJECT_COMPOUNDBUTTON")) {
             if (project.INJECT_COMPOUNDBUTTON) {
                 injectCompoundButton = true
                 injectList.add(pool.get(INJECT_BUTTON))
             }
         }
+
         if (project.hasProperty("INJECT_LOG")) {
             injectLog = project.INJECT_LOG
         }
+
         if (injectLog) {
+            println("INJECTION_PATH--------->" + injectionPath)
             println("INJECT_PATH------------>" + injectPath)
+            println("IGNORE_PATH------------>" + ignorePath)
         }
     }
 
@@ -195,12 +228,11 @@ class InjectHelper {
 
         if (ctClass.isInterface()) return false
 
-        if (ctClass.hasAnnotation(Ignore.class)) {
-            Ignore ignore = ctClass.getAnnotation(Ignore.class)
-            //Abstract class can use @Ignore(false) to inject action
-            return !ignore.value()
-        }
+        if (hasIgnoreAnnotation(ctClass)) return false
 
+        if (hasInjectAnnotation(ctClass)) return true
+
+        //Abstract class can use @Inject to inject action
         if (Modifier.isAbstract(ctClass.getModifiers())) {
             return false
         }
@@ -208,10 +240,7 @@ class InjectHelper {
         //Check anonymous inner class is in @Ignored class.
         if (ctClass.name.contains("\$")) {
             def superClass = pool.get(ctClass.name.substring(0, ctClass.name.indexOf("\$")))
-            if (superClass.hasAnnotation(Ignore.class)) {
-                Ignore ignore = superClass.getAnnotation(Ignore.class)
-                return !ignore.value()
-            }
+            if (hasIgnoreAnnotation(superClass)) return false
         }
 
         //check class is need inject
@@ -225,6 +254,42 @@ class InjectHelper {
         return false
     }
 
+    private boolean hasInjectAnnotation(CtClass ctClass) {
+        if (injectPath != null) {
+            if (ctClass.annotations != null) {
+                def len = ctClass.annotations.length
+                for (int i = 0; i < len; i++) {
+                    if (ctClass.annotations[i].toString().contains(injectPath)) return true
+                }
+            }
+        }
+        return false
+    }
+
+    private boolean hasIgnoreAnnotation(CtClass ctClass) {
+        if (ignorePath != null) {
+            if (ctClass.annotations != null) {
+                def len = ctClass.annotations.length
+                for (int i = 0; i < len; i++) {
+                    if (ctClass.annotations[i].toString().contains(ignorePath)) return true
+                }
+            }
+        }
+        return false
+    }
+
+    private boolean hasIgnoreAnnotation(CtMethod ctMethod) {
+        if (ignorePath != null) {
+            if (ctMethod.annotations != null) {
+                def len = ctMethod.annotations.length
+                for (int i = 0; i < len; i++) {
+                    if (ctMethod.annotations[i].toString().contains(ignorePath)) return true
+                }
+            }
+        }
+        return false
+    }
+
     /**
      *
      * @param filePath
@@ -234,6 +299,7 @@ class InjectHelper {
     private static boolean isInjectFile(String filePath, String filterPath) {
         def isInjectClass = filePath.endsWith(".class") && !filePath.contains('R$') &&
                 !filePath.contains('R.class') && !filePath.contains("BuildConfig.class")
+
         if (isInjectClass) {
             if (filePath.endsWith("Injection.class")) {
                 isInjectClass &= getClassNameFromPath(filePath) != filterPath

@@ -5,7 +5,6 @@ import com.android.build.gradle.internal.pipeline.TransformManager
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
-
 /**
  * Created by cool on 2018/3/15.
  */
