@@ -4,7 +4,7 @@
 ### 注入条件：
 
 1、项目源码，且不包含jar和aar等依赖包<br>
-2、接口不会注入;抽象类默认不会注入，除非添加@Ignore(false)<br>
+2、接口不会注入；抽象类默认不会注入，除非添加@Inject<br>
 3、添加@Ignore的类，该类下所有方法都不会注入<br>
 4、类必须有onClick/onTouch/onTouchEvent/onLongClick/onCheckedChanged方法并实现相应接口
 
@@ -12,27 +12,7 @@
 
 #### 一、添加类
 
-1、在引入该插件之前，需要先添加另外一个依赖：
-
-   在根目录的build文件中添加：
-    
-    allprojects {
-        repositories {
-            google()
-            jcenter()
-            maven { url 'https://jitpack.io' }
-            ```
-        }
-    }
-    
-   在app的build文件中添加：
-
-     dependencies {
-         ```
-         implementation 'com.github.wshychbydh:ActionMonitor:xxx'
-     }
-
-2、新建**Injection**类，代码如下：(方法按需添加)
+1、新建**Injection**类，代码如下：(方法按需添加)
 
     public class Injection {
           
@@ -65,22 +45,36 @@
               Monitor.onCheckedChanged(buttonView, isChecked);
           }
      }
-     
-3、如果有不需要注入的方法，在相应的方法上添加@Ignore注解，如下：
+   注：Monitor类集中处理相应事件的逻辑，添加方法参考 https://github.com/wshychbydh/ActionDemo<br>
 
-    @Ignore
-    public void onClick(View v) {
-        ```
+
+2、添加注解类：（必须添加）
+
+   * 添加Ignore注解类：
+
+    @Retention(CLASS)
+    @Target({TYPE, METHOD})
+    public @interface Ignore {
+    }
+   
+   * 添加Inject注解类：
+
+    @Retention(CLASS)
+    @Target(TYPE)
+    public @interface Inject {
     }
     
-    
-4、配置Injection类的存放目录，在app的build文件中添加：
+#### 二、添加配置     
+
+1、配置Injection类，Inject注解，Ignore注解的存放路径，在app的build文件中添加：
     
     ext {
-        INJECT_PATH = "com.plugin.inject.Injection" //Injection的完整地址
+        INJECTION_PATH = "com.app.demo.inject.Injection" //Injection的全路径
+        INJECT_PATH = "com.app.demo.inject.Inject" //Inject的全路径
+        IGNORE_PATH = "com.app.demo.inject.Ignore" //Ignore的全路径
     }
-        
- 5、在app的build文件中配置需要注入的方法：（按需添加）
+    
+2、在app的build文件中配置需要注入的方法：（按需添加）
  
     ext {
         INJECT_CLICK = true           //注入所有符合条件的onClick方法，默认为true 
@@ -92,7 +86,23 @@
         INJECT_LOG = false            //是否打印日志，默认false
     }
 
-#### 二、添加插件依赖
+#### 三、使用注解 
+
+1、如果有不需要注入的方法，在相应的方法上添加@Ignore注解，如下：
+  
+      @Ignore
+      public void onClick(View v) {
+          ```
+      }
+      
+2、如果抽象类也需要注入，在类上添加@Inject注解，如下：
+   
+      @Inject
+      public abstract class Xx implements View.OnClickListener {
+          ```
+      }
+                   
+#### 四、添加依赖
 在app的build文件下添加如下代码
    
     buildscript {
